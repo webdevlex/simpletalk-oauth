@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { CircularProgress, Typography, Box } from "@mui/material";
@@ -34,4 +34,12 @@ const Index = () => {
 	);
 };
 
-export default Index;
+const IndexWrapper = () => {
+	return (
+		<Suspense fallback={<CircularProgress />}>
+			<Index />
+		</Suspense>
+	);
+};
+
+export default IndexWrapper;

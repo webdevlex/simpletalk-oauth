@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { Box, CircularProgress, Typography, Button } from "@mui/material";
 import getApiConfig from "@/config";
 import axios from "axios";
@@ -119,4 +119,12 @@ const GhlLink = () => {
 	);
 };
 
-export default GhlLink;
+const GhlLinkWrapper = () => {
+	return (
+		<Suspense fallback={<div>Loading...</div>}>
+			<GhlLink />
+		</Suspense>
+	);
+};
+
+export default GhlLinkWrapper;
