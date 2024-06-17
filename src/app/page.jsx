@@ -45,8 +45,9 @@ const GhlLink = () => {
 		try {
 			const token = localStorage.getItem("token");
 			const headers = { Authorization: `Bearer ${token}` };
+			const code = searchParams.get("code");
 			const res = await axios.post(
-				`${convoAiMetricsApiUrl}/ghl-link`,
+				`${convoAiMetricsApiUrl}/ghl-link?code=${code}`,
 				{},
 				{ headers }
 			);
