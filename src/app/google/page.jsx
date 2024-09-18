@@ -3,62 +3,73 @@ import React, { useState, useEffect, Suspense } from "react";
 import { Box, CircularProgress, Typography, Button } from "@mui/material";
 import getApiConfig from "@/config";
 import axios from "axios";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 const GhlLink = () => {
 	const searchParams = useSearchParams();
+	const router = useRouter();
 
 	const [loading, setLoading] = useState(true);
 	const [linkingSuccess, setLinkingSuccess] = useState(false);
 	const { convoAiMetricsApiUrl } = getApiConfig();
 
 	useEffect(() => {
-		const fetchData = async (code) => {
+		completeGoogleSignIn();
+	}, []);
+
+	const completeGoogleSignIn = async () => {
+		const code = searchParams.get("code");
+		if (code) {
+			setLoading(true);
 			try {
-				const token = localStorage.getItem("token");
-				const headers = { Authorization: `Bearer ${token}` };
-				const res = await axios.post(
-					`${convoAiMetricsApiUrl}/ghl-link?code=${code}`,
-					{},
-					{ headers }
-				);
-				if (res.status === 200) {
-					setLinkingSuccess(true);
-				}
+				await getRefreshToken(code);
+				setLinkingSuccess(true);
 			} catch (error) {
-				console.error("Error during authentication:", error);
+				console.error("Failed to link google calendar");
+				throw error;
 			} finally {
 				setLoading(false);
 			}
-		};
-
-		const code = searchParams.get("code");
-		if (code) {
-			fetchData(code);
 		}
-	}, []);
+	};
+
+	const getRefreshToken = async (code) => {
+		try {
+			const url = `${convoAiMetricsApiUrl}/google/auth_tokens`;
+			const body = {
+				code: code,
+				redirect_url: "https://ghl.aicall.site/google",
+			};
+			const headers = {
+				headers: {
+					Authorization: localStorage.getItem("token"),
+					"Content-Type": "application/json",
+				},
+			};
+
+			await axios.post(url, body, headers);
+		} catch (error) {
+			throw error;
+		}
+	};
 
 	const handleRetry = async () => {
-		setLoading(true);
-		try {
-			const token = localStorage.getItem("token");
-			const headers = { Authorization: `Bearer ${token}` };
-			const code = searchParams.get("code");
-			const res = await axios.post(
-				`${convoAiMetricsApiUrl}/ghl-link?code=${code}`,
-				{},
-				{ headers }
-			);
-			if (res.status === 200) {
-				console.log("success!");
-				setLinkingSuccess(true);
-			}
-		} catch (error) {
-			console.error("Error during authentication:", error);
-		} finally {
-			setLoading(false);
-		}
+		const url = "https://accounts.google.com/o/oauth2/v2/auth";
+		const params = {
+			client_id:
+				"1015715291135-et3iks8v7kqj20475s5e7rcjn5q6emrg.apps.googleusercontent.com",
+			redirect_uri: "https://ghl.aicall.site/google",
+			response_type: "code",
+			prompt: "consent",
+			access_type: "offline",
+			scope:
+				"https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid https://www.googleapis.com/auth/calendar.app.created https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.calendarlist",
+		};
+
+		const queryString = new URLSearchParams(params).toString();
+		const authUrl = `${url}?${queryString}`;
+		router.push(authUrl);
 	};
 
 	let content;
@@ -67,7 +78,7 @@ const GhlLink = () => {
 			<>
 				<CircularProgress />
 				<Typography variant="h5" style={{ marginTop: 32 }}>
-					Linking your account to GHL
+					Linking your Google calendar
 				</Typography>
 			</>
 		);
@@ -76,7 +87,7 @@ const GhlLink = () => {
 			<>
 				<CheckCircleIcon color="success" sx={{ fontSize: 72 }} />
 				<Typography variant="h5" marginTop={1}>
-					Account linked successfully!
+					Google calendar successfully linked!
 				</Typography>
 				<Typography
 					variant="caption"
@@ -99,7 +110,7 @@ const GhlLink = () => {
 					Try Again
 				</Button>
 				<Typography variant="h5" style={{ marginTop: 32 }}>
-					Linking failed
+					Failed to link Google calendar
 				</Typography>
 			</>
 		);
